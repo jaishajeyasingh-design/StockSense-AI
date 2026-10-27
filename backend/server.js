@@ -7,7 +7,9 @@ const connectDB = require('./config/db');
 dotenv.config();
 
 // Connect to Database
-connectDB();
+if (process.env.NODE_ENV !== 'test') {
+  connectDB();
+}
 
 const app = express();
 
@@ -21,6 +23,7 @@ const productRoutes = require('./routes/productRoutes');
 const salesRoutes = require('./routes/salesRoutes');
 const forecastRoutes = require('./routes/forecastRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
+const purchaseOrderRoutes = require('./routes/purchaseOrderRoutes');
 
 // Mount Routes
 app.use('/api/auth', authRoutes);
@@ -28,21 +31,27 @@ app.use('/api/products', productRoutes);
 app.use('/api/sales', salesRoutes);
 app.use('/api/forecast', forecastRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/purchase-orders', purchaseOrderRoutes);
+
+// Import Middleware
+const { protect, authorize } = require('./middleware/authMiddleware');
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({ success: true, message: 'StockSense AI Backend API is running smoothly' });
 });
 
-// Seed API endpoint for easy review demo triggering
-app.post('/api/seed', async (req, res) => {
+// Seed API endpoint for easy review demo triggering (Protected: ADMIN only)
+app.post('/api/seed', protect, authorize('ADMIN'), async (req, res) => {
   try {
-    const seed = require('./seed');
-    res.json({ success: true, message: 'Seeding triggered. Check backend logs for confirmation.' });
+    const seedData = require('./seed');
+    await seedData();
+    res.json({ success: true, message: 'Seeding completed successfully.' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
 });
+
 
 // 404 Handler
 app.use((req, res) => {
@@ -58,13 +67,16 @@ app.use((err, req, res, next) => {
   });
 });
 
-const PORT = process.env.PORT || 5000;
+module.exports = app;
 
-const server = app.listen(PORT, () => {
-  console.log(`🚀 StockSense AI Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
-});
+if (require.main === module) {
+  const PORT = process.env.PORT || 5000;
+  const server = app.listen(PORT, () => {
+    console.log(`🚀 StockSense AI Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
+  });
 
-process.on('unhandledRejection', (err) => {
-  console.log(`Error: ${err.message}`);
-  server.close(() => process.exit(1));
-});
+  process.on('unhandledRejection', (err) => {
+    console.log(`Error: ${err.message}`);
+    server.close(() => process.exit(1));
+  });
+}

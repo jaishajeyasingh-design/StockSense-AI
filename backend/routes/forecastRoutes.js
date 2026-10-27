@@ -5,9 +5,10 @@ const {
   generateForecast,
   generateAllForecasts,
 } = require('../controllers/forecastController');
+const { protect, authorize } = require('../middleware/authMiddleware');
 
-router.get('/:productId', getForecast);
-router.post('/:productId', generateForecast);
-router.post('/generate-all', generateAllForecasts);
+router.post('/generate-all', protect, authorize('ADMIN', 'MANAGER'), generateAllForecasts);
+router.get('/:productId', protect, authorize('ADMIN', 'MANAGER'), getForecast);
+router.post('/:productId', protect, authorize('ADMIN', 'MANAGER'), generateForecast);
 
 module.exports = router;

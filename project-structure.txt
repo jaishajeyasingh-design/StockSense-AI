@@ -1,0 +1,108 @@
+﻿StockSense-AI/
+|-- backend
+|   |-- config
+|   |   `-- db.js
+|   |-- controllers
+|   |   |-- authController.js
+|   |   |-- dashboardController.js
+|   |   |-- forecastController.js
+|   |   |-- productController.js
+|   |   |-- purchaseOrderController.js
+|   |   `-- salesController.js
+|   |-- middleware
+|   |   `-- authMiddleware.js
+|   |-- models
+|   |   |-- Forecast.js
+|   |   |-- Product.js
+|   |   |-- PurchaseOrder.js
+|   |   |-- Sale.js
+|   |   `-- User.js
+|   |-- routes
+|   |   |-- authRoutes.js
+|   |   |-- dashboardRoutes.js
+|   |   |-- forecastRoutes.js
+|   |   |-- productRoutes.js
+|   |   |-- purchaseOrderRoutes.js
+|   |   `-- salesRoutes.js
+|   |-- scripts
+|   |   |-- seedTestDbOnly.js
+|   |   `-- verifyDbConnection.js
+|   |-- services
+|   |   `-- forecastingService.js
+|   |-- tests
+|   |   |-- api.test.js
+|   |   |-- purchaseOrderController.test.js
+|   |   |-- purchaseOrderLiveDatabaseIntegration.test.js
+|   |   |-- purchaseOrderModel.test.js
+|   |   `-- purchaseOrderReceivingReliability.test.js
+|   |-- utils
+|   |   `-- poNumberGenerator.js
+|   |-- .env.example
+|   |-- .env.test
+|   |-- .gitignore
+|   |-- package.json
+|   |-- package-lock.json
+|   |-- seed.js
+|   `-- server.js
+|-- frontend
+|   |-- public
+|   |   |-- favicon.svg
+|   |   `-- icons.svg
+|   |-- src
+|   |   |-- assets
+|   |   |   |-- hero.png
+|   |   |   |-- react.svg
+|   |   |   `-- vite.svg
+|   |   |-- components
+|   |   |   |-- purchaseOrders
+|   |   |   |   |-- ApprovePOModal.jsx
+|   |   |   |   |-- CancelPOModal.jsx
+|   |   |   |   |-- CreatePOModal.jsx
+|   |   |   |   |-- OrderPOModal.jsx
+|   |   |   |   |-- PODetailsModal.jsx
+|   |   |   |   |-- ReceivePOModal.jsx
+|   |   |   |   `-- RejectPOModal.jsx
+|   |   |   |-- Navbar.jsx
+|   |   |   |-- ProductTable.jsx
+|   |   |   |-- ProtectedRoute.jsx
+|   |   |   |-- Sidebar.jsx
+|   |   |   |-- StatCard.jsx
+|   |   |   `-- StockAlert.jsx
+|   |   |-- pages
+|   |   |   |-- Alerts.jsx
+|   |   |   |-- Dashboard.jsx
+|   |   |   |-- Forecast.jsx
+|   |   |   |-- Login.jsx
+|   |   |   |-- Products.jsx
+|   |   |   |-- PurchaseOrders.jsx
+|   |   |   `-- Sales.jsx
+|   |   |-- services
+|   |   |   `-- api.js
+|   |   |-- test
+|   |   |   |-- apiClient.test.js
+|   |   |   |-- Dashboard.test.jsx
+|   |   |   |-- Login.test.jsx
+|   |   |   |-- ProtectedRoute.test.jsx
+|   |   |   |-- PurchaseOrders.test.jsx
+|   |   |   |-- Sales.test.jsx
+|   |   |   |-- setup.js
+|   |   |   |-- Sidebar.test.jsx
+|   |   |   |-- StatCard.test.jsx
+|   |   |   `-- StockAlert.test.jsx
+|   |   |-- App.css
+|   |   |-- App.jsx
+|   |   |-- index.css
+|   |   `-- main.jsx
+|   |-- .env.example
+|   |-- .gitignore
+|   |-- .oxlintrc.json
+|   |-- index.html
+|   |-- package.json
+|   |-- package-lock.json
+|   |-- README.md
+|   |-- vite.config.js
+|   `-- vitest.config.js
+|-- .gitignore
+|-- package-lock.json
+|-- project-structure.txt
+`-- README.md

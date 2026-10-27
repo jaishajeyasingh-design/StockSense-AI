@@ -26,11 +26,15 @@ const registerUser = async (req, res) => {
       return res.status(400).json({ success: false, message: 'User already exists' });
     }
 
+    // Public registration always assigns STAFF role to prevent privilege escalation.
+    // Only verified ADMIN requests can assign elevated roles.
+    const assignedRole = req.user && req.user.role === 'ADMIN' && role ? role : 'STAFF';
+
     const user = await User.create({
       name,
       email,
       password,
-      role: role || 'STAFF',
+      role: assignedRole,
     });
 
     if (user) {

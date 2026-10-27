@@ -6,23 +6,52 @@ import {
   ShoppingCart,
   TrendingUp,
   AlertTriangle,
+  ClipboardList,
 } from 'lucide-react';
 
-const Sidebar = () => {
-  const navItems = [
-    { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-    { label: 'Products', path: '/products', icon: Package },
-    { label: 'Sales Entry', path: '/sales', icon: ShoppingCart },
-    { label: 'Demand Forecast', path: '/forecast', icon: TrendingUp },
-    { label: 'Stock Alerts', path: '/alerts', icon: AlertTriangle },
-  ];
+const Sidebar = ({ userRole = 'STAFF' }) => {
+  const isManagement = userRole === 'ADMIN' || userRole === 'MANAGER';
+
+  const navItems = isManagement
+    ? [
+        { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+        { label: 'Products', path: '/products', icon: Package },
+        { label: 'Sales Entry', path: '/sales', icon: ShoppingCart },
+        { label: 'Demand Forecast', path: '/forecast', icon: TrendingUp },
+        { label: 'Stock Alerts', path: '/alerts', icon: AlertTriangle },
+        { label: 'Purchase Orders', path: '/purchase-orders', icon: ClipboardList },
+      ]
+    : [
+        { label: 'Products', path: '/products', icon: Package },
+        { label: 'Sales Entry', path: '/sales', icon: ShoppingCart },
+      ];
+
+  const getRoleBadgeStyle = (role) => {
+    switch (role) {
+      case 'ADMIN':
+        return 'bg-purple-100 text-purple-700 border-purple-200';
+      case 'MANAGER':
+        return 'bg-blue-100 text-blue-700 border-blue-200';
+      default:
+        return 'bg-slate-100 text-slate-700 border-slate-200';
+    }
+  };
 
   return (
     <aside className="w-64 bg-white border-r border-slate-200 min-h-[calc(100vh-4rem)] p-4 hidden md:block">
       <div className="space-y-1">
-        <p className="px-3 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
-          Navigation
-        </p>
+        <div className="flex items-center justify-between px-3 mb-3">
+          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+            Navigation
+          </p>
+          <span
+            className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${getRoleBadgeStyle(
+              userRole
+            )}`}
+          >
+            {userRole}
+          </span>
+        </div>
         {navItems.map((item) => {
           const Icon = item.icon;
           return (

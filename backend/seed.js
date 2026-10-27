@@ -116,11 +116,17 @@ const seedData = async () => {
 
     console.log('Forecasts Generated & Saved.');
     console.log('✅ SEEDING COMPLETE SUCCESSFULLY!');
-    process.exit(0);
+    return true;
   } catch (error) {
     console.error('Seeding Error:', error);
-    process.exit(1);
+    if (require.main === module) process.exit(1);
+    throw error;
   }
 };
 
-seedData();
+module.exports = seedData;
+
+if (require.main === module) {
+  seedData().then(() => process.exit(0));
+}
+

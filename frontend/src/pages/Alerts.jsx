@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { fetchDashboardApi } from '../services/api';
 import StockAlert from '../components/StockAlert';
 import { AlertTriangle, CheckCircle, Package, ArrowUpRight } from 'lucide-react';
 
 const Alerts = () => {
+  const navigate = useNavigate();
   const [forecasts, setForecasts] = useState([]);
   const [filter, setFilter] = useState('ALL');
   const [loading, setLoading] = useState(true);
@@ -145,11 +147,12 @@ const Alerts = () => {
 
                 {item.recommendedReorderQuantity > 0 && (
                   <button
-                    onClick={() =>
-                      alert(
-                        `Simulated purchase order created for ${item.recommendedReorderQuantity} units of ${item.productId?.name}!`
-                      )
-                    }
+                    onClick={() => {
+                      const prodId = item.productId?._id || item.productId;
+                      navigate(
+                        `/purchase-orders?reorderProductId=${prodId}&reorderQty=${item.recommendedReorderQuantity}`
+                      );
+                    }}
                     className="flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-700 bg-blue-50 px-3 py-1.5 rounded-xl border border-blue-200 transition-colors cursor-pointer"
                   >
                     <span>Reorder</span>

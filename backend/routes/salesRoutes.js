@@ -5,12 +5,12 @@ const {
   getSales,
   getSalesByProduct,
 } = require('../controllers/salesController');
-const { protect } = require('../middleware/authMiddleware');
+const { protect, authorize } = require('../middleware/authMiddleware');
 
 router.route('/')
-  .get(getSales)
+  .get(protect, authorize('ADMIN', 'MANAGER'), getSales)
   .post(protect, createSale);
 
-router.get('/product/:productId', getSalesByProduct);
+router.get('/product/:productId', protect, authorize('ADMIN', 'MANAGER'), getSalesByProduct);
 
 module.exports = router;

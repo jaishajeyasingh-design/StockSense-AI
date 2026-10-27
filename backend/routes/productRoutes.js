@@ -11,12 +11,12 @@ const { protect, authorize } = require('../middleware/authMiddleware');
 
 router
   .route('/')
-  .get(getProducts)
+  .get(protect, getProducts)
   .post(protect, authorize('ADMIN', 'MANAGER'), createProduct);
 
 router
   .route('/:id')
-  .get(getProductById)
+  .get(protect, getProductById)
   .put(protect, authorize('ADMIN', 'MANAGER'), updateProduct)
   .delete(protect, authorize('ADMIN'), deleteProduct);
 

@@ -1,5 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { fetchDashboardApi } from '../services/api';
+import { Link } from 'react-router-dom';
+import {
+  fetchDashboardApi,
+  fetchProductsApi,
+  generateAllForecastsApi,
+} from '../services/api';
 import StatCard from '../components/StatCard';
 import StockAlert from '../components/StockAlert';
 import {
@@ -10,6 +15,15 @@ import {
   TrendingUp,
   ShoppingCart,
   RefreshCw,
+  Shield,
+  Layers,
+  Sparkles,
+  ArrowRight,
+  CheckCircle2,
+  AlertTriangle,
+  Coins,
+  ChevronRight,
+  Info,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -23,18 +37,52 @@ import {
   CartesianGrid,
 } from 'recharts';
 
-const Dashboard = () => {
+const Dashboard = ({ userRole }) => {
   const [data, setData] = useState(null);
+  const [products, setProducts] = useState([]);
+  const [inventoryValuation, setInventoryValuation] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [forecastLoading, setForecastLoading] = useState(false);
+  const [forecastNotice, setForecastNotice] = useState('');
+
+  // Determine active role (prop -> localStorage -> default to ADMIN)
+  const resolvedRole = (
+    userRole ||
+    (() => {
+      try {
+        return JSON.parse(localStorage.getItem('userInfo') || '{}').role;
+      } catch (e) {
+        return 'ADMIN';
+      }
+    })() ||
+    'ADMIN'
+  ).toUpperCase();
+
+  const isAdmin = resolvedRole === 'ADMIN';
+  const isManager = resolvedRole === 'MANAGER';
 
   const loadDashboard = async () => {
     setLoading(true);
     setError('');
     try {
-      const res = await fetchDashboardApi();
-      if (res.data.success) {
-        setData(res.data.data);
+      const calls = [fetchDashboardApi()];
+      // Admin executive view fetches products to calculate exact total inventory valuation
+      if (isAdmin) {
+        calls.push(fetchProductsApi());
+      }
+      const [dashRes, prodRes] = await Promise.all(calls);
+      if (dashRes.data.success) {
+        setData(dashRes.data.data);
+      }
+      if (prodRes && prodRes.data.success) {
+        const prodList = prodRes.data.data || [];
+        setProducts(prodList);
+        const valuation = prodList.reduce(
+          (sum, p) => sum + Number(p.price || 0) * Number(p.stock || 0),
+          0
+        );
+        setInventoryValuation(valuation);
       }
     } catch (err) {
       setError(
@@ -49,7 +97,26 @@ const Dashboard = () => {
 
   useEffect(() => {
     loadDashboard();
-  }, []);
+  }, [resolvedRole]);
+
+  // Manager action: Trigger AI forecast generation for all catalog items
+  const handleRunForecast = async () => {
+    setForecastLoading(true);
+    setForecastNotice('');
+    try {
+      const res = await generateAllForecastsApi();
+      if (res.data.success) {
+        setForecastNotice('Demand forecasts successfully generated & updated across all SKUs.');
+        await loadDashboard();
+      }
+    } catch (err) {
+      setForecastNotice(
+        err.response?.data?.message || 'Failed to generate demand forecasts.'
+      );
+    } finally {
+      setForecastLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -77,8 +144,14 @@ const Dashboard = () => {
     );
   }
 
-  const { summary, salesTrend, recentSales, forecastSummary, alerts, reorderRecommendations } =
-    data || {};
+  const {
+    summary,
+    salesTrend,
+    recentSales,
+    forecastSummary,
+    alerts,
+    reorderRecommendations,
+  } = data || {};
 
   // Forecast comparison chart data
   const forecastChartData = (forecastSummary || []).slice(0, 7).map((f) => ({
@@ -89,61 +162,213 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* =========================================================================
+          HEADER: Role-Aware Context
+          ========================================================================= */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Executive Dashboard</h2>
-          <p className="text-xs text-slate-500">Real-time inventory intelligence & demand forecast analytics</p>
+          <div className="flex items-center gap-2.5">
+            <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
+              {isAdmin ? 'Executive Dashboard' : 'Operations Dashboard'}
+            </h2>
+            <span
+              className={`text-[10px] font-bold px-2.5 py-1 rounded-lg border uppercase tracking-wider ${
+                isAdmin
+                  ? 'bg-purple-100 text-purple-700 border-purple-200'
+                  : 'bg-blue-100 text-blue-700 border-blue-200'
+              }`}
+            >
+              {isAdmin ? 'Executive Suite' : 'Operations & Inventory'}
+            </span>
+          </div>
+          <p className="text-xs text-slate-500 mt-1">
+            {isAdmin
+              ? 'Real-time executive oversight, inventory valuation & demand intelligence'
+              : 'Inventory health monitoring, stockout risk triage & demand forecasting'}
+          </p>
         </div>
-        <button
-          onClick={loadDashboard}
-          className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 text-slate-700 rounded-xl text-xs font-semibold hover:bg-slate-50 transition-colors shadow-2xs self-start"
-        >
-          <RefreshCw className="w-3.5 h-3.5" />
-          <span>Refresh Data</span>
-        </button>
+
+        <div className="flex items-center gap-2.5 self-start">
+          {/* Manager Action: Forecast Trigger */}
+          {isManager && (
+            <button
+              onClick={handleRunForecast}
+              disabled={forecastLoading}
+              className="flex items-center gap-2 px-3.5 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold shadow-md shadow-purple-500/20 transition-all cursor-pointer disabled:opacity-50"
+              title="Generate fresh demand forecasts for all catalog items"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${forecastLoading ? 'animate-spin' : ''}`} />
+              <span>{forecastLoading ? 'Updating Forecasts...' : 'Run Forecast Engine'}</span>
+            </button>
+          )}
+
+          <button
+            onClick={loadDashboard}
+            className="flex items-center gap-2 px-3.5 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl text-xs font-semibold hover:bg-slate-50 transition-colors shadow-2xs"
+          >
+            <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
+            <span>Refresh Data</span>
+          </button>
+        </div>
       </div>
 
-      {/* 5 Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        <StatCard
-          title="Total Products"
-          value={summary?.totalProducts || 0}
-          subtitle="Active SKUs"
-          icon={Package}
-          colorScheme="blue"
-        />
-        <StatCard
-          title="Total Inventory"
-          value={summary?.totalInventory || 0}
-          subtitle="Units in stock"
-          icon={Boxes}
-          colorScheme="emerald"
-        />
-        <StatCard
-          title="Low Stock"
-          value={summary?.lowStockProducts || 0}
-          subtitle="At or below reorder level"
-          icon={AlertOctagon}
-          colorScheme="amber"
-        />
-        <StatCard
-          title="Stockout Risk"
-          value={summary?.stockoutRiskCount || 0}
-          subtitle="High priority action"
-          icon={TrendingDown}
-          colorScheme="rose"
-        />
-        <StatCard
-          title="Overstock"
-          value={summary?.overstockCount || 0}
-          subtitle="Excess capital tied"
-          icon={TrendingUp}
-          colorScheme="sky"
-        />
-      </div>
+      {/* Manager Forecast Feedback Banner */}
+      {isManager && forecastNotice && (
+        <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-2xl text-xs text-emerald-800 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span className="font-medium">{forecastNotice}</span>
+          </div>
+          <button
+            onClick={() => setForecastNotice('')}
+            className="text-emerald-700 hover:text-emerald-900 font-bold ml-2"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
-      {/* Analytics Charts Row */}
+      {/* =========================================================================
+          MANAGER WORKSPACE: Quick Operational Shortcuts
+          ========================================================================= */}
+      {isManager && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Link
+            to="/products"
+            className="group p-4 bg-white border border-slate-200/80 rounded-2xl shadow-xs hover:border-blue-300 hover:shadow-md transition-all flex items-center justify-between"
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                <Package className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-slate-900">Product Catalog</h4>
+                <p className="text-xs text-slate-500">Inspect SKUs & safety thresholds</p>
+              </div>
+            </div>
+            <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-blue-600 transition-colors" />
+          </Link>
+
+          <Link
+            to="/forecast"
+            className="group p-4 bg-white border border-slate-200/80 rounded-2xl shadow-xs hover:border-purple-300 hover:shadow-md transition-all flex items-center justify-between"
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-purple-50 text-purple-600 rounded-xl group-hover:bg-purple-600 group-hover:text-white transition-colors">
+                <TrendingUp className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-slate-900">Demand Forecast</h4>
+                <p className="text-xs text-slate-500">Inspect AI moving average predictions</p>
+              </div>
+            </div>
+            <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-purple-600 transition-colors" />
+          </Link>
+
+          <Link
+            to="/alerts"
+            className="group p-4 bg-white border border-slate-200/80 rounded-2xl shadow-xs hover:border-rose-300 hover:shadow-md transition-all flex items-center justify-between"
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-rose-50 text-rose-600 rounded-xl group-hover:bg-rose-600 group-hover:text-white transition-colors">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-slate-900">Stock Risk Alerts</h4>
+                <p className="text-xs text-slate-500">Triage stockout & overstock warnings</p>
+              </div>
+            </div>
+            <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-rose-600 transition-colors" />
+          </Link>
+        </div>
+      )}
+
+      {/* =========================================================================
+          ROLE-SPECIFIC KPI STAT CARDS
+          ========================================================================= */}
+      {isAdmin ? (
+        /* ADMIN EXECUTIVE KPIS */
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          <StatCard
+            title="Total Inventory Valuation"
+            value={`₹${inventoryValuation.toLocaleString()}`}
+            subtitle="Catalog asset valuation"
+            icon={Coins}
+            colorScheme="emerald"
+          />
+          <StatCard
+            title="Sales Revenue"
+            value={`₹${(summary?.totalSalesAmount || 0).toLocaleString()}`}
+            subtitle="Cumulative gross revenue"
+            icon={ShoppingCart}
+            colorScheme="blue"
+          />
+          <StatCard
+            title="Total Products"
+            value={summary?.totalProducts || 0}
+            subtitle="Active SKUs"
+            icon={Package}
+            colorScheme="sky"
+          />
+          <StatCard
+            title="Low Stock"
+            value={summary?.lowStockProducts || 0}
+            subtitle="At or below reorder level"
+            icon={AlertOctagon}
+            colorScheme="amber"
+          />
+          <StatCard
+            title="Stockout Risk"
+            value={summary?.stockoutRiskCount || 0}
+            subtitle="High priority action"
+            icon={TrendingDown}
+            colorScheme="rose"
+          />
+        </div>
+      ) : (
+        /* MANAGER OPERATIONS KPIS */
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          <StatCard
+            title="Healthy Products"
+            value={summary?.healthyProducts || 0}
+            subtitle="Optimal stock level"
+            icon={Package}
+            colorScheme="emerald"
+          />
+          <StatCard
+            title="Low Stock"
+            value={summary?.lowStockProducts || 0}
+            subtitle="At or below reorder level"
+            icon={AlertOctagon}
+            colorScheme="amber"
+          />
+          <StatCard
+            title="Stockout Risk"
+            value={summary?.stockoutRiskCount || 0}
+            subtitle="Immediate reorder needed"
+            icon={TrendingDown}
+            colorScheme="rose"
+          />
+          <StatCard
+            title="Overstock"
+            value={summary?.overstockCount || 0}
+            subtitle="Excess capital tied"
+            icon={TrendingUp}
+            colorScheme="sky"
+          />
+          <StatCard
+            title="Total Units in Stock"
+            value={summary?.totalInventory || 0}
+            subtitle="Total units across catalog"
+            icon={Boxes}
+            colorScheme="blue"
+          />
+        </div>
+      )}
+
+      {/* =========================================================================
+          ANALYTICS CHARTS ROW
+          ========================================================================= */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Sales Revenue Trend Chart */}
         <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
@@ -153,7 +378,7 @@ const Dashboard = () => {
               <p className="text-xs text-slate-500">Daily sales performance history</p>
             </div>
             <span className="text-xs font-semibold px-2.5 py-1 bg-blue-50 text-blue-700 rounded-lg">
-              Total ₹{summary?.totalSalesAmount || 0}
+              Total ₹{(summary?.totalSalesAmount || 0).toLocaleString()}
             </span>
           </div>
           <div className="h-64 w-full">
@@ -225,7 +450,9 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Widgets Grid */}
+      {/* =========================================================================
+          OPERATIONAL & TRANSACTION WIDGETS
+          ========================================================================= */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Stock Alerts Widget */}
         <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-3">
@@ -236,7 +463,7 @@ const Dashboard = () => {
             </span>
           </div>
           <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
-            {(!alerts || alerts.length === 0) ? (
+            {!alerts || alerts.length === 0 ? (
               <p className="text-xs text-slate-400 py-4 text-center">No active stock alerts.</p>
             ) : (
               alerts.map((a, idx) => (
@@ -266,7 +493,7 @@ const Dashboard = () => {
             </span>
           </div>
           <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
-            {(!reorderRecommendations || reorderRecommendations.length === 0) ? (
+            {!reorderRecommendations || reorderRecommendations.length === 0 ? (
               <p className="text-xs text-slate-400 py-4 text-center">All inventory levels healthy.</p>
             ) : (
               reorderRecommendations.map((r, idx) => (
@@ -289,14 +516,14 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Recent Sales History */}
+        {/* Recent Sales History Feed */}
         <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-3">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold text-slate-800">Recent Sales</h3>
+            <h3 className="text-sm font-bold text-slate-800">Recent Sales Activity</h3>
             <ShoppingCart className="w-4 h-4 text-slate-400" />
           </div>
           <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
-            {(!recentSales || recentSales.length === 0) ? (
+            {!recentSales || recentSales.length === 0 ? (
               <p className="text-xs text-slate-400 py-4 text-center">No sales recorded yet.</p>
             ) : (
               recentSales.map((s) => (
@@ -305,7 +532,9 @@ const Dashboard = () => {
                   className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between text-xs"
                 >
                   <div>
-                    <p className="font-bold text-slate-800">{s.productId ? s.productId.name : 'Product'}</p>
+                    <p className="font-bold text-slate-800">
+                      {s.productId ? s.productId.name : 'Product'}
+                    </p>
                     <p className="text-slate-500 mt-0.5">
                       {new Date(s.date).toLocaleDateString()} • Qty: {s.quantity}
                     </p>
@@ -319,6 +548,48 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
+
+      {/* =========================================================================
+          ADMIN ONLY: User & Role Administration Section
+          (Requirement: Add only if backend API exists, else document as future feature)
+          ========================================================================= */}
+      {isAdmin && (
+        <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 pb-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-purple-50 text-purple-700 rounded-xl">
+                <Shield className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900">
+                  User & Role Administration
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Access control, user management, and authorization audit
+                </p>
+              </div>
+            </div>
+            <span className="text-xs font-semibold text-purple-700 bg-purple-50 px-3 py-1 rounded-lg border border-purple-200 self-start">
+              Future Capability • Backend API Required
+            </span>
+          </div>
+
+          <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl flex items-start gap-3">
+            <Info className="w-5 h-5 text-slate-500 shrink-0 mt-0.5" />
+            <div className="text-xs text-slate-600 space-y-1 leading-relaxed">
+              <p className="font-semibold text-slate-800">
+                User Management Architecture Status:
+              </p>
+              <p>
+                A secure server-side user provisioning and role administration API is planned for a subsequent release. In compliance with the security design, the frontend does not fabricate or mock user management capabilities.
+              </p>
+              <p>
+                Currently, user registrations are strictly restricted to the <span className="font-bold text-slate-700">STAFF</span> role, while administrative credentials (<span className="font-bold text-slate-700">ADMIN</span>, <span className="font-bold text-slate-700">MANAGER</span>) are managed via secure database seeding and server-side RBAC middleware.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

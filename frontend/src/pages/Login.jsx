@@ -21,7 +21,8 @@ const Login = ({ onLoginSuccess }) => {
       if (data.success) {
         localStorage.setItem('userInfo', JSON.stringify(data.data));
         if (onLoginSuccess) onLoginSuccess(data.data);
-        navigate('/dashboard');
+        const targetRoute = data.data.role === 'STAFF' ? '/sales' : '/dashboard';
+        navigate(targetRoute);
       }
     } catch (err) {
       setError(

@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
 
 const API = axios.create({
   baseURL: API_BASE_URL,
@@ -45,5 +45,15 @@ export const generateAllForecastsApi = () => API.post('/forecast/generate-all');
 
 // Dashboard API
 export const fetchDashboardApi = () => API.get('/dashboard');
+
+// Purchase Order APIs
+export const fetchPurchaseOrdersApi = (params) => API.get('/purchase-orders', { params });
+export const fetchPurchaseOrderByIdApi = (id) => API.get(`/purchase-orders/${id}`);
+export const createPurchaseOrderApi = (data) => API.post('/purchase-orders', data);
+export const approvePurchaseOrderApi = (id, data) => API.patch(`/purchase-orders/${id}/approve`, data);
+export const rejectPurchaseOrderApi = (id, data) => API.patch(`/purchase-orders/${id}/reject`, data);
+export const orderPurchaseOrderApi = (id, data) => API.patch(`/purchase-orders/${id}/order`, data);
+export const receivePurchaseOrderStockApi = (id, data) => API.post(`/purchase-orders/${id}/receive`, data);
+export const cancelPurchaseOrderApi = (id, data) => API.patch(`/purchase-orders/${id}/cancel`, data);
 
 export default API;
